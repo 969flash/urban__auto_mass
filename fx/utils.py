@@ -81,8 +81,7 @@ def get_dist_from_crv_crv(crv_a, crv_b):
 
 def is_intersection_with_other_crvs(crv, crvs):
     # type: (geo.Curve, List[geo.Curve]) -> bool
-    """crv가 crvs와 교차하는 점들을 crv의 파라미터 순서대로 정렬한다
-       중복되는 점이 crvs에서 각 각 교차되는 점일 경우 제거되지 않는다
+    """
        Rhino의 intersection을 사용하기 때문에
        겹쳐진 커브의 intersection event는 제대로 구해지지 않는다
     Args:
@@ -93,7 +92,6 @@ def is_intersection_with_other_crvs(crv, crvs):
         bool: 교차여부
     """
     intersection = ghcomp.MultipleCurves([crv] + crvs)
-    print("intersection.points", intersection.points)
     return bool(intersection.points)
 
 
