@@ -156,29 +156,11 @@ def convert_io_to_list(func):
     return wrapper
 
 
-def not_allow_list_input(func):
-    """인풋에 리스트는 허용하지 않는 데코레이터"""
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        if any(isinstance(arg, list) for arg in args):
-            raise ValueError("{}'s must be one".format(func.__name__))
-        return func(*args, **kwargs)
-
-    return wrapper
-
-
 class Comp:
     class _PolylineOffsetResult:
         def __init__(self):
             self.contour = None  # type: Optional[List[geo.Curve]]
             self.holes = None  # type: Optional[List[geo.Curve]]
-
-    class _ConvexHullResult:
-        def __init__(self, hull, indices):
-            # type: (geo.Curve, List[int]) -> None
-            self.hull = hull
-            self.indices = indices
 
     @convert_io_to_list
     def polyline_offset(
@@ -224,95 +206,3 @@ class Comp:
         for name in ("contour", "holes"):
             setattr(polyline_offset_result, name, result[name])
         return polyline_offset_result
-
-    @not_allow_list_input
-    def _polyline_containment(self, region, pt, plane=None, tol=OP_TOL):
-        # type: (geo.Curve, geo.Point3d, geo.Plane, float) -> int
-        # -1: 일치, 0: 밖, 1: 안
-        int_result = ghcomp.ClipperComponents.PolylineContainment(
-            region, pt, plane, tol
-        )
-        return int_result
-
-    def polyline_containment_inside(self, region, pt, plane=None, tol=OP_TOL):
-        # type: (geo.Curve, geo.Point3d, geo.Plane, float) -> bool
-        return self._polyline_containment(region, pt, plane, tol) == 1
-
-    def polyline_containment_on(self, region, pt, plane=None, tol=OP_TOL):
-        # type: (geo.Curve, geo.Point3d, geo.Plane, float) -> bool
-        return self._polyline_containment(region, pt, plane, tol) == -1
-
-    def polyline_containment_outside(self, region, pt, plane=None, tol=OP_TOL):
-        # type: (geo.Curve, geo.Point3d, geo.Plane, float) -> bool
-        return self._polyline_containment(region, pt, plane, tol) == 0
-
-    @not_allow_list_input
-    def minkowski_sum(self, crv, region, plane):
-        # type: (geo.Curve, geo.Curve, geo.Plane) -> List[geo.Curve]
-        crvs_minkowski_sum = ghcomp.ClipperComponents.MinkowskiSum(
-            crv, region, plane, Rhino.RhinoMath.ZeroTolerance
-        )["sum"]
-        if not isinstance(crvs_minkowski_sum, list):
-            crvs_minkowski_sum = [crvs_minkowski_sum]
-        return crvs_minkowski_sum
-
-    @not_allow_list_input
-    def minkowski_diff(self, crv, region, plane):
-        # type: (geo.Curve, geo.Curve, geo.Plane) -> List[geo.Curve]
-        crvs_minkowski_diff = ghcomp.ClipperComponents.MinkowskiDifference(
-            crv, region, plane, CLIPPER_TOL
-        )
-        if not isinstance(crvs_minkowski_diff, list):
-            crvs_minkowski_diff = [crvs_minkowski_diff]
-        return crvs_minkowski_diff
-
-    @convert_io_to_list
-    def _polyline_boolean(
-        self, crvs0, crvs1, boolean_type=None, plane=None, tol=CLIPPER_TOL
-    ):
-        # type: (List[geo.Curve], List[geo.Curve], int, geo.Plane, float) -> List[geo.Curve]
-        if not crvs0 or not crvs1:
-            raise ValueError("Check input values")
-        return ghcomp.ClipperComponents.PolylineBoolean(
-            crvs0, crvs1, boolean_type, plane, tol
-        )
-
-    def polyline_boolean_intersection(self, crvs0, crvs1, plane=None, tol=CLIPPER_TOL):
-        # type: (Union[geo.Curve, List[geo.Curve]], Union[geo.Curve, List[geo.Curve]], geo.Plane, float) -> List[geo.Curve]
-        return self._polyline_boolean(crvs0, crvs1, 0, plane, tol)
-
-    def polyline_boolean_union(self, crvs0, crvs1, plane=None, tol=CLIPPER_TOL):
-        # type: (Union[geo.Curve, List[geo.Curve]], Union[geo.Curve, List[geo.Curve]], geo.Plane, float) -> List[geo.Curve]
-        return self._polyline_boolean(crvs0, crvs1, 1, plane, tol)
-
-    def polyline_boolean_difference(self, crvs0, crvs1, plane=None, tol=CLIPPER_TOL):
-        # type: (Union[geo.Curve, List[geo.Curve]], Union[geo.Curve, List[geo.Curve]], geo.Plane, float) -> List[geo.Curve]
-        return self._polyline_boolean(crvs0, crvs1, 2, plane, tol)
-
-    def polyline_boolean_xor(self, crvs0, crvs1, plane=None, tol=CLIPPER_TOL):
-        # type: (Union[geo.Curve, List[geo.Curve]], List[geo.Curve], geo.Plane, float) -> List[geo.Curve]
-        return self._polyline_boolean(crvs0, crvs1, 3, plane, tol)
-
-    def get_convex_hull(self, pts, plane=None):
-        # type: (List[geo.Point3d], Optional[geo.Plane]) -> _ConvexHullResult
-        if not isinstance(pts, list):
-            pts = [pts]
-        if plane is None:
-            plane = geo.Plane.WorldXY
-
-        # Z값이 있는 결과물(hull(z))은 사용하지 않는다.
-        result = ghcomp.ConvexHull(pts, plane)
-        return self._ConvexHullResult(result.hull, result.indices)
-
-    def elevate(self, geometry, height):
-        # type: (Union[geo.GeometryBase, List[geo.GeometryBase]], float) -> Union[geo.GeometryBase, List[geo.GeometryBase]]
-        """
-        어떤 geometry 이든지 height만큼 올려준다.
-        """
-        if not geometry:
-            return None
-
-        elevated_geometry = ghcomp.Move(geometry, geo.Vector3d(0, 0, height))[0]
-        if isinstance(geometry, list) and not isinstance(elevated_geometry, list):
-            return [elevated_geometry]
-        return elevated_geometry
