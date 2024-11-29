@@ -118,10 +118,14 @@ def extrude_buildings(buildings, min_floor, max_floor, floor_height, GFA):
     return brep_buildings
 
 
+# input :
+# reset, block_regions, set_back_dist, min_width,
+# max_width, min_dist_between_buildings, min_floor,
+# max_floor, floor_height, GFA, building_depth
+
 if reset:
     raise Exception("RESET")
 
-building_depth = 18
 
 rails = get_rails(block_regions, set_back_dist, building_depth)
 
