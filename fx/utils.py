@@ -99,7 +99,6 @@ def offset_regions_inward(regions, dist, miter=BIGNUM):
     # type: (geo.Curve | List[geo.Curve], float, int) -> List[geo.Curve]
     """영역 커브를 안쪽으로 offset 한다.
     단일커브나 커브리스트 관계없이 커브 리스트로 리턴한다.
-
     Args:
         region: offset할 대상 커브
         dist: offset할 거리
@@ -110,14 +109,13 @@ def offset_regions_inward(regions, dist, miter=BIGNUM):
 
     if not dist:
         return regions
-    return Comp().polyline_offset(regions, dist, miter).holes
+    return Offset().polyline_offset(regions, dist, miter).holes
 
 
 def offset_region_outward(region, dist, miter=BIGNUM):
     # type: (geo.Curve, float, float) -> geo.Curve
     """영역 커브를 바깥쪽으로 offset 한다.
     단일 커브를 받아서 단일 커브로 리턴한다.
-
     Args:
         region: offset할 대상 커브
         dist: offset할 거리
@@ -130,7 +128,7 @@ def offset_region_outward(region, dist, miter=BIGNUM):
         return region
     if not isinstance(region, geo.Curve):
         raise ValueError("region must be curve")
-    return Comp().polyline_offset(region, dist, miter).contour[0]
+    return Offset().polyline_offset(region, dist, miter).contour[0]
 
 
 def convert_io_to_list(func):
@@ -156,7 +154,7 @@ def convert_io_to_list(func):
     return wrapper
 
 
-class Comp:
+class Offset:
     class _PolylineOffsetResult:
         def __init__(self):
             self.contour = None  # type: Optional[List[geo.Curve]]
@@ -173,18 +171,16 @@ class Comp:
         tol=Rhino.RhinoMath.ZeroTolerance,
     ):
         # type: (List[geo.Curve], List[float], int, int, int, float) -> _PolylineOffsetResult
-        """TODO
-        # ! open_fillet 0 (round)는 ZeroTolerance에 의해서 연산에 부하가 크다.
-        따라서 open_fillet을 다른 종류로 사용하거나, tol 값을 조정해서 사용해야한다.
+        """
         Args:
             crv (_type_): _description_
             dists (_type_): _description_
-            miter : TODO
+            miter : miter
             closed_fillet : 0 = round, 1 = square, 2 = miter
             open_fillet : 0 = round, 1 = square, 2 = butt
 
         Returns:
-            _type_: _description_
+            _type_: _PolylineOffsetResult
         """
         if tol == Rhino.RhinoMath.ZeroTolerance and open_fillet == 0:
             raise ValueError("open_fillet must be 1 or 2")
@@ -202,7 +198,8 @@ class Comp:
             open_fillet,
             miter,
         )
-        polyline_offset_result = Comp._PolylineOffsetResult()
+
+        polyline_offset_result = Offset._PolylineOffsetResult()
         for name in ("contour", "holes"):
             setattr(polyline_offset_result, name, result[name])
         return polyline_offset_result
