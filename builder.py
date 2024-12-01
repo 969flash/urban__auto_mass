@@ -9,6 +9,12 @@ import Rhino.Geometry as geo  # ignore
 # import fx.utils as utils
 import fx.utils as utils
 import random
+import scriptcontext as sc
+
+import importlib
+
+# 모듈 새로고침
+importlib.reload(utils)
 
 
 def get_rails(block_regions, set_back_dist, building_depth):

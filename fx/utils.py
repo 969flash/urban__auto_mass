@@ -81,18 +81,10 @@ def get_dist_from_crv_crv(crv_a, crv_b):
 
 def is_intersection_with_other_crvs(crv, crvs):
     # type: (geo.Curve, List[geo.Curve]) -> bool
-    """
-       Rhino의 intersection을 사용하기 때문에
-       겹쳐진 커브의 intersection event는 제대로 구해지지 않는다
-    Args:
-        crv (geo.Curve): 교차 기준 선
-        crvs (List[geo.Curve]): 교차할 커브들
-
-    Returns:
-        bool: 교차여부
-    """
-    intersection = ghcomp.MultipleCurves([crv] + crvs)
-    return bool(intersection.points)
+    return any(
+        geo.Curve.PlanarCurveCollision(crv, other_crv, geo.Plane.WorldXY, OP_TOL)
+        for other_crv in crvs
+    )
 
 
 def offset_regions_inward(regions, dist, miter=BIGNUM):
